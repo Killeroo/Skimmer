@@ -10,15 +10,16 @@ import (
 	"net"
 	"time"
 	"sync"
-	"flag"
-	"github.com/daviddengcn/go-colortext"
+	"log"
+	//"flag"
+	//"github.com/daviddengcn/go-colortext"
 )
 
-const UNKNOWN_PORT = "<unknown>"
-const var KNOWN_PORTS = map[int] string {
-	80: "HTTP",
+//const UNKNOWN_PORT = "<unknown>"
+//const var KNOWN_PORTS[] = map[int] string {
+//	80: "HTTP",
 	
-}
+//}
 
 // Initialise flags here : https://github.com/google/gopacket/blob/a5fcaa8c680ece28c600516a76d05f5b19eb46bc/examples/pcapdump/main.go#L23
 
@@ -33,14 +34,16 @@ type ScanDetails struct {
 
 // Initialise flag variables here
 
+//https://gist.github.com/montanaflynn/b59c058ce2adc18f31d6
+
 // Scans a host for open ports and returns
 // the results in an array
-func scan (host string) []int {
+func scan () []int { // hosts string[]
 	openPorts := []int{}
 	lock := sync.Mutex{}
-	thread := make(chan, ThreadCount)
+	thread := make(chan bool, 4)
 
-	for port := portStart; port <= portEnd; port++ {
+	for port := 0; port <= 3000; port++ {
 		thread <- true // what is
 		go func (port int) {
 			if isPortOpen(port) {
@@ -48,29 +51,32 @@ func scan (host string) []int {
 				openPorts = append(openPorts, port)
 				lock.Unlock()
 			}
-			<- sem
+			<- thread
 		}(port)
 
 		// whats this?
 		for i := 0; i < cap(thread); i++ {
-			sem <- true
+			thread <- true
 		}
 	}
+
+	return openPorts
 }
 
 func isPortOpen (port int) bool {
 	// First try #####
-	addr, er := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", "127.0.0.1", port))	
+	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", "127.0.0.1", port))
 	if err != nil {
 		return false
 	}
 	
 	// Then try ####
 	conn, err := net.DialTimeout("tcp", addr.String(), 1000)
-	defer conn.Close()
+
 	if err != nil {
 		return false
 	}
+	defer conn.Close()
 
 	return true
 }
@@ -81,6 +87,11 @@ func showOpenPorts () {
 
 func main() {
 	// call scan save to array
+	log.Println()
+	openports := scan()
 
+	for index, ports := range openports {
+		log.Printf("%d : %d", index, ports)
+	}
 	// display array
 }
