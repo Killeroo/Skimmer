@@ -13,6 +13,8 @@ import (
 	"log"
 	//"flag"
 	//"github.com/daviddengcn/go-colortext"
+
+	//https://github.com/fatih/color.git?
 )
 
 //const UNKNOWN_PORT = "<unknown>"
@@ -20,6 +22,8 @@ import (
 //	80: "HTTP",
 	
 //}
+//https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers
+//https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xml
 
 // Initialise flags here : https://github.com/google/gopacket/blob/a5fcaa8c680ece28c600516a76d05f5b19eb46bc/examples/pcapdump/main.go#L23
 
@@ -54,10 +58,13 @@ func scan () []int { // hosts string[]
 			<- thread
 		}(port)
 
-		// whats this?
-		for i := 0; i < cap(thread); i++ {
-			thread <- true
-		}
+	}
+
+	// whats this?
+	//https://gobyexample.com/channel-synchronization
+	// Explain what these are
+	for i := 0; i < cap(thread); i++ {
+		thread <- true
 	}
 
 	return openPorts
@@ -65,12 +72,14 @@ func scan () []int { // hosts string[]
 
 func isPortOpen (port int) bool {
 	// First try #####
+	// Lookup inputted address to actual address
 	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", "127.0.0.1", port))
 	if err != nil {
 		return false
 	}
 	
 	// Then try ####
+	// try and connect
 	conn, err := net.DialTimeout("tcp", addr.String(), 1000)
 
 	if err != nil {
