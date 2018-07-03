@@ -1,6 +1,17 @@
 /* Skimmer - Lightweight port scanner
 *  Based off: github.com/anvie/port-scanner
-TODO: CamelCase for function names
+https://www.google.com/search?q=skimmer+animal&client=firefox-b-ab&tbm=isch&source=iu&ictx=1&fir=GSXSVjrBk_RjRM%253A%252CdKCRDpEtyJu9GM%252C_&usg=__z9iOwUH5L913S3TPr7X6gXvEqMg%3D&sa=X&ved=0ahUKEwjO-5z33oLcAhUDeMAKHe7aCzcQ9QEIlAEwAw#imgrc=GSXSVjrBk_RjRM:
+
+Add color
+Add list of ports and descriptions..
+Move known_ports into own file and rename
+Add summary details upon completion
+Icon?
+
+stretch goals:
+lookup address before scan starts to save time
+check UDP as well
+add stealthy options
 */
 
 package main
@@ -8,13 +19,13 @@ package main
 import (
 	"fmt"
 	"net"
-	"time"
 	"sync"
 	"log"
-	//"flag"
-	//"github.com/daviddengcn/go-colortext"
+	"github.com/briandowns/spinner"
 
 	//https://github.com/fatih/color.git?
+	"flag"
+	"time"
 )
 
 // Kill me
@@ -130,63 +141,67 @@ var KNOWN_PORTS_DETAILS = map[int] string {
 	111: "Open Network Computing REmote Procedure Call",
 }
 
-// Initialise flags here : https://github.com/google/gopacket/blob/a5fcaa8c680ece28c600516a76d05f5b19eb46bc/examples/pcapdump/main.go#L23
+const iconText =
+`
+    /.)
+   /)\|
+  //)/ 
+ /'"^"  [SKIMMER] - lightweight port scanner 
+`
 
-// Rename?
-type ScanDetails struct {
-	host string
-	threads int // default
-	timeout time.Duration //? //default
-	startPort int // default
-	endPort int // really? //default
+// Stores info about scan operation
+type ScanData struct {
+	address   string
+	threads   int
+	timeout   int
+	startPort int
+	endPort   int
 }
 
-// Initialise flag variables here
-
-//https://gist.github.com/montanaflynn/b59c058ce2adc18f31d6
-
-// Scans a host for open ports and returns
-// the results in an array
-func scan () []int { // hosts string[]
+// Scans ports of a host, operation info is provided by ScanData struct
+// First results array, thread lock and synchronization channel are created
+// then every port in specified range is looped through and tested
+// And the open ports are returned in the form of an int array
+// https://gobyexample.com/channel-synchronization
+// http://guzalexander.com/2013/12/06/golang-channels-tutorial.html
+func scanPorts (data ScanData) []int {
 	openPorts := []int{}
 	lock := sync.Mutex{}
-	thread := make(chan bool, 4)
+	thread := make(chan bool, data.threads) // Make channel to synchronize goroutines
 
-	for port := 0; port <= 3000; port++ {
-		thread <- true // what is
+	for port := data.startPort; port <= data.endPort; port++ {
+		thread <- true // Signify thread is done?
 		go func (port int) {
-			if isPortOpen(port) {
+			if isPortOpen(data.address, port) {
 				lock.Lock()
 				openPorts = append(openPorts, port)
 				lock.Unlock()
 			}
-			<- thread
+			<- thread // Wait for other channels to be finish
 		}(port)
 
 	}
 
-	// whats this?
-	//https://gobyexample.com/channel-synchronization
 	// Explain what these are
 	for i := 0; i < cap(thread); i++ {
+		// Tell main method everything is done
 		thread <- true
 	}
 
 	return openPorts
 }
 
-func isPortOpen (port int) bool {
-	// First try #####
-	// Lookup inputted address to actual address
-	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", "127.0.0.1", port))
+// Checks if a port is open, first resolves address
+// then attempts to connect using tcp
+// Returns bool based on connection success
+func isPortOpen (address string, port int) bool {
+	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", address, port))
 	if err != nil {
 		return false
 	}
-	
-	// Then try ####
-	// try and connect
-	conn, err := net.DialTimeout("tcp", addr.String(), 1000)
 
+
+	conn, err := net.DialTimeout("tcp", addr.String(), 1000)
 	if err != nil {
 		return false
 	}
@@ -195,19 +210,59 @@ func isPortOpen (port int) bool {
 	return true
 }
 
-func showOpenPorts () {
-	// Takes an array
+// Display all open ports and references any known port types
+// using the KNOWN_PORTS map
+func displayOpenPorts (ports []int) {
+	for _, port := range ports {
+		if portName, ok := KNOWN_PORTS[port]; ok {
+			fmt.Printf("%d: [%s]\n", port, portName)
+		} else {
+			fmt.Printf("%d: [unknown]\n", port)
+		}
+	}
 }
 
 func main() {
-	
-
-	// call scan save to array
-	log.Println()
-	openports := scan()
-
-	for index, ports := range openports {
-		log.Printf("%d : %d", index, ports)
+	// Setup flag, log, spinner and scan data
+	fmt.Println(iconText)
+	log.SetPrefix("[SKIMMER] ")
+	log.SetFlags(0)
+	address := flag.String("address", "", "Address to scan")
+	threads := flag.Int("threads", 4,"Number of threads to use when scanning")
+	timeout := flag.Int("timeout", 1000, "Timeout for each connection attempt")
+	allPorts := flag.Bool("all", true, "Scan all possible ports")
+	knownPorts := flag.Bool("known", false,"Scan only well-known ports (0-1024)")
+	registeredPorts := flag.Bool("registered", false, "Scan registered port range (1024-49151)")
+	flag.Parse()
+	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond) //36
+	//s.Prefix = "Scanning..."
+	s.FinalMSG = "Complete!\n\n"
+	var data ScanData
+	data.address = *address
+	data.threads = *threads
+	data.timeout = *timeout
+	if *allPorts {
+		data.startPort = 0
+		data.endPort = 50000
+	} else if *knownPorts {
+		data.startPort = 0
+		data.endPort = 1024
+	} else if *registeredPorts {
+		data.startPort = 1025
+		data.endPort = 50000
 	}
+
+	// Bail if we have no address set
+	if *address == "" {
+		log.Fatal("No address specified")
+	}
+
+	// Scan ports and save results in array
+	log.Printf("Scanning ports [%d-%d] @ %s ... \n", data.startPort, data.endPort, data.address)
+	s.Start()
+	results := scanPorts(data)
+	s.Stop()
+
 	// display array
+	displayOpenPorts(results)
 }
