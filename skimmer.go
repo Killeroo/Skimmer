@@ -7,6 +7,7 @@ Add list of ports and descriptions..
 Move known_ports into own file and rename
 Add summary details upon completion
 Icon?
+cleanup
 
 stretch goals:
 lookup address before scan starts to save time
@@ -115,6 +116,27 @@ var KNOWN_PORTS = map[int] string { // Convert to lower caps // Rename to wellkn
 	220: "Internet Message Access Protocol (IMAP) version 3",
 	225-241: "Reserved",
 	249-255: "Reserved",
+	259: "Efficient Short Remote Operations (ESRO)",
+	262: "Arcisdms",
+	264: "Border Gateway Multicast Protocol (BGMP)",
+	280: "http-mgmt", // RENAME
+	308: "Novastor Online Backup",
+	311: "Mac OS X Server Admin",
+	318: "PKIX Time Stamp Protocol (TSP)",
+	319: "Precision Time Protocol (PTP) event messages",
+	320: "Precision Time Protocol (PTP) general messages",
+	350: "Mapping of Airline Traffic over Internet Protocol (MATIP) type A",
+	351: "Mapping of Airline Traffic over Internet Protocol (MATIP) type B",
+	356: "cloanto-net-1 (used by Cloanto Amiga Explorer and VMs)", // RENAME
+	366: "On-Demand Mail Relay (ODMR)",
+	369: "Rpc2portmap", // RENAME
+	370: "codaauth2 - Coda authentication server",
+	371: "ClearCase albd",
+	383: "HP data alarm manager",
+	384: "A Remote Network Server System",
+	387: "AppleTalk Update-based Routing Protocol (AURP)",
+	389: "Lightweight Directory Access Protocol (LDAP)",
+	399: "Digital Equipment Corporation DECnet (Phase V+) over TCP/IP",
 }
 
 const iconText =
