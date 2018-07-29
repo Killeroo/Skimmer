@@ -137,6 +137,18 @@ var KNOWN_PORTS = map[int] string { // Convert to lower caps // Rename to wellkn
 	387: "AppleTalk Update-based Routing Protocol (AURP)",
 	389: "Lightweight Directory Access Protocol (LDAP)",
 	399: "Digital Equipment Corporation DECnet (Phase V+) over TCP/IP",
+	401: "Uninterruptible power supply (UPS)",
+	427: "Service Location Protocol (SLP)",
+	433: "NNSP, part of Network News Transfer Protocol (NNTP)",
+	434: "Mobile IP Agent",
+	443: "Hypertext Transfer Protocol over TLS/SSL (HTTPS)",
+	444: "Simple Network Paging Protocol (SNPP)",
+	445: "Microsoft-DS (Directory Services) Active Directory",
+	464: "Kerberos Change/Set password",
+	465: "Authenticated SMTP over TLS/SSL (SMTPS)",
+	475: "tcpnethaspsrv, Aladdin Knowledge Systems Hasp services",
+	497: "Retrospect",
+	500: "Internet Security Association and Key Management Protocol (ISAKMP) / Internet Key Exchange (IKE)",
 }
 
 const iconText =
