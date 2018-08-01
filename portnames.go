@@ -118,4 +118,15 @@ var knownPortNames2 = map[int] string {
 	475: "tcpnethaspsrv, Aladdin Knowledge Systems Hasp services",
 	497: "Retrospect",
 	500: "Internet Security Association and Key Management Protocol (ISAKMP) / Internet Key Exchange (IKE)",
+	502: "Modbus Protocol",
+	504: "Citadel Multiservice Protocol",
+	510: "FirstClass Protocol (FCP)",
+	512: "Rexec, Remote Process Execution",
+	513: "rlogin",
+	514: "Remote Shell",
+	515: "Line Printer Daemon (LPD)",
+	517: "Talk",
+	518: "NTalk",
+	520: "Extended Filename Server (EFS)",
+	521: "Routing Information Protocol Next Generation (RIPng)"
 }
