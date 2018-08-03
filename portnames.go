@@ -2,6 +2,7 @@ package main
 
 // List of known port names, taken from here:
 // https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers#Well-known_ports
+//TODO: Get working
 var knownPortNames2 = map[int] string {
 	0: "Reserved",
 	1: "TCPMUX",
@@ -128,5 +129,8 @@ var knownPortNames2 = map[int] string {
 	517: "Talk",
 	518: "NTalk",
 	520: "Extended Filename Server (EFS)",
-	521: "Routing Information Protocol Next Generation (RIPng)"
+	521: "Routing Information Protocol Next Generation (RIPng)",
+	524: "NetWare Core Protocol (NCP)",
+	525: "Timeserver",
+	530: "Remote Procedure Call (RPC)",
 }

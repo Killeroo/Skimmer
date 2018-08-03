@@ -182,10 +182,13 @@ type ScanData struct {
 func scanPorts (data ScanData) []int {
 	openPorts := []int{}
 	lock := sync.Mutex{}
-	thread := make(chan bool, data.threads) // Make channel to synchronize goroutines
+	thread := make(chan bool, data.threads) // Make channel to pass info between threads
 
+	//TODO: More explainations
 	for port := data.startPort; port <= data.endPort; port++ {
-		thread <- true // Signify thread is done?
+		thread <- true // Set channel as true
+
+		// Check if port is open in new thread
 		go func (port int) {
 			if isPortOpen(data.address, port) {
 				lock.Lock()
@@ -193,7 +196,7 @@ func scanPorts (data ScanData) []int {
 				lock.Unlock()
 			}
 
-			<- thread // Wait for other channels to be finish
+			<- thread // Return the value of channel?
 		}(port)
 
 	}
@@ -228,6 +231,7 @@ func isPortOpen (address string, port int) bool {
 // Display all open ports and references any known port types
 // using the knownPortNames map
 func displayOpenPorts (ports []int) {
+	//TODO: Split to known and unknown ports sections
 	for _, port := range ports {
 		if portName, ok := knownPortNames[port]; ok {
 			fmt.Printf("%d: [%s]\n", port, portName)
