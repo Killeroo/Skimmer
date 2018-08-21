@@ -152,4 +152,8 @@ var knownPortNames2 = map[int] string {
 	591: "FileMaker 6.0 (and later) Web Sharing",
 	593: "HTTP RPC Ep Map",
 	601: "Reliable Syslog Service",
+	604: "TUNNEL profile",
+	623: "ASF Remote Management and Control Protocol (ASF-RMCP)",
+	625: "Open Directory Proxy (ODProxy)",
+	631: " 	Internet Printing Protocol (IPP)",
 }
