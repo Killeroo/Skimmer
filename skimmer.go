@@ -176,18 +176,19 @@ type ScanData struct {
 // Scans ports of a host, operation info is provided by ScanData struct
 // First results array, thread lock and synchronization channel are created
 // then every port in specified range is looped through and tested
-// And the open ports are returned in the form of an int array
+// All open ports are returned in the form of an int array
 // https://gobyexample.com/channel-synchronization
 // http://guzalexander.com/2013/12/06/golang-channels-tutorial.html
 func scanPorts (data ScanData) []int {
-	openPorts := []int{}
-	lock := sync.Mutex{}
-	thread := make(chan bool, data.threads) // Make channel to pass info between threads
+	openPorts := []int{} // Stores all open ports
+	lock := sync.Mutex{} // Mutex lock to make sure openPorts list is accessed one thread at a time
+	thread := make(chan bool, data.threads) // Go channel to pass data between threads
 
-	//TODO: More explainations
+	// Loop through each port in specified range
 	for port := data.startPort; port <= data.endPort; port++ {
 		thread <- true // Set channel as true
 
+		// Create go routine to check if port is open in new thread
 		// Check if port is open in new thread
 		go func (port int) {
 			if isPortOpen(data.address, port) {
