@@ -186,7 +186,7 @@ func scanPorts (data ScanData) []int {
 
 	// Loop through each port in specified range
 	for port := data.startPort; port <= data.endPort; port++ {
-		thread <- true // Set channel as true
+		thread <- true // Pass message to any go channels
 
 		// Create go routine to check if port is open in new thread
 		// Check if port is open in new thread
@@ -197,14 +197,13 @@ func scanPorts (data ScanData) []int {
 				lock.Unlock()
 			}
 
-			<- thread // Return the value of channel?
+			<- thread // Block goroutine till we recieve value on channel
 		}(port)
 
 	}
 
-	// Explain what these are
 	for i := 0; i < cap(thread); i++ {
-		// Tell main method everything is done
+	    // Signal all remaining goroutines to stop 
 		thread <- true
 	}
 
