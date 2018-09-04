@@ -1,18 +1,5 @@
 /* Skimmer - Lightweight port scanner
 *  Based off: github.com/anvie/port-scanner
-https://www.google.com/search?q=skimmer+animal&client=firefox-b-ab&tbm=isch&source=iu&ictx=1&fir=GSXSVjrBk_RjRM%253A%252CdKCRDpEtyJu9GM%252C_&usg=__z9iOwUH5L913S3TPr7X6gXvEqMg%3D&sa=X&ved=0ahUKEwjO-5z33oLcAhUDeMAKHe7aCzcQ9QEIlAEwAw#imgrc=GSXSVjrBk_RjRM:
-
-Add color
-Add list of ports and descriptions..
-Move known_ports into own file and rename
-Add summary details upon completion
-Icon?
-cleanup
-
-stretch goals:
-lookup address before scan starts to save time
-check UDP as well
-add stealthy options
 */
 
 package main
@@ -22,13 +9,14 @@ import (
 	"net"
 	"sync"
 	"log"
-	//"github.com/briandowns/spinner" // Doesnt work on windows?
-	"github.com/gosuri/uiprogress"
-	//https://github.com/fatih/color.git?
 	"flag"
-	//"time"
+
+	"github.com/gosuri/uiprogress"
+	"github.com/fatih/color"
+	"os"
 )
 
+// List of known port names
 var knownPortNames = map[int] string {
 	0: "Reserved",
 	1: "TCPMUX",
@@ -145,6 +133,43 @@ var knownPortNames = map[int] string {
 	475: "tcpnethaspsrv, Aladdin Knowledge Systems Hasp services",
 	497: "Retrospect",
 	500: "Internet Security Association and Key Management Protocol (ISAKMP) / Internet Key Exchange (IKE)",
+	502: "Modbus Protocol",
+	504: "Citadel Multiservice Protocol",
+	510: "FirstClass Protocol (FCP)",
+	512: "Rexec, Remote Process Execution",
+	513: "rlogin",
+	514: "Remote Shell",
+	515: "Line Printer Daemon (LPD)",
+	517: "Talk",
+	518: "NTalk",
+	520: "Extended Filename Server (EFS)",
+	521: "Routing Information Protocol Next Generation (RIPng)",
+	524: "NetWare Core Protocol (NCP)",
+	525: "Timeserver",
+	530: "Remote Procedure Call (RPC)",
+	532: "netnews",
+	533: "netwall, For Emergency Broadcasts",
+	540: "Unix-to-Unix Copy Protocol (UUCP)",
+	542: "commerse (Commerse Application)",
+	543: "klogin, Kerberos login",
+	544: "kshell, Kerberos Remote shell",
+	546: "DHCPv6 client",
+	547: "DHCPv6 server",
+	548: "Apple Filing Protocol (AFP) over TCP",
+	550: "new-rwho, new-who",
+	554: "Real Time Streaming Protocol (RTSP)",
+	556: "Remotefs, RFS, rfs_server",
+	560: "rmonitor, Remote Monitor",
+	561: "monitor",
+	563: "NNTP over TLS/SSL (NNTPS)",
+	587: "email message submission (SMTP)",
+	591: "FileMaker 6.0 (and later) Web Sharing",
+	593: "HTTP RPC Ep Map",
+	601: "Reliable Syslog Service",
+	604: "TUNNEL profile",
+	623: "ASF Remote Management and Control Protocol (ASF-RMCP)",
+	625: "Open Directory Proxy (ODProxy)",
+	631: "Internet Printing Protocol (IPP)",
 }
 
 const iconText =
@@ -155,14 +180,14 @@ const iconText =
  /'"^"  [SKIMMER] - lightweight port scanner 
 `
 
+// Program flags/arguments
 var address = flag.String("address", "", "Address to scan")
 var threads = flag.Int("threads", 4,"Number of threads to use when scanning")
 var timeout = flag.Int("timeout", 1000, "Timeout for each connection attempt")
 var allPorts = flag.Bool("all", true, "Scan all possible ports")
 var knownPorts = flag.Bool("known", false,"Scan only well-known ports (0-1024)")
 var registeredPorts = flag.Bool("registered", false, "Scan registered port range (1024-49151)")
-
-var progressbar uiprogress.Bar
+var privatePorts = flag.Bool("private", false, "Scan private port range (49152-65535)")
 
 // Stores info about scan operation
 type ScanData struct {
@@ -173,16 +198,21 @@ type ScanData struct {
 	endPort   int
 }
 
+
 // Scans ports of a host, operation info is provided by ScanData struct
 // First results array, thread lock and synchronization channel are created
 // then every port in specified range is looped through and tested
 // All open ports are returned in the form of an int array
-// https://gobyexample.com/channel-synchronization
-// http://guzalexander.com/2013/12/06/golang-channels-tutorial.html
 func scanPorts (data ScanData) []int {
 	openPorts := []int{} // Stores all open ports
 	lock := sync.Mutex{} // Mutex lock to make sure openPorts list is accessed one thread at a time
 	thread := make(chan bool, data.threads) // Go channel to pass data between threads
+
+	// Setup progress bar
+	uiprogress.Start()
+	bar := uiprogress.AddBar(data.endPort - data.startPort)
+	bar.AppendCompleted()
+	bar.PrependElapsed()
 
 	// Loop through each port in specified range
 	for port := data.startPort; port <= data.endPort; port++ {
@@ -200,7 +230,11 @@ func scanPorts (data ScanData) []int {
 			<- thread // Block goroutine till we recieve value on channel
 		}(port)
 
+		bar.Incr()
 	}
+
+	// Stop progress bar
+	uiprogress.Stop()
 
 	for i := 0; i < cap(thread); i++ {
 	    // Signal all remaining goroutines to stop 
@@ -231,14 +265,41 @@ func isPortOpen (address string, port int) bool {
 // Display all open ports and references any known port types
 // using the knownPortNames map
 func displayOpenPorts (ports []int) {
-	//TODO: Split to known and unknown ports sections
+	// Specify colors
+	portColor := color.New(color.FgHiGreen)
+	systemColor := color.New(color.FgHiYellow)
+	registeredColor := color.New(color.FgHiCyan)
+	privateColor := color.New(color.FgHiMagenta)
+
 	for _, port := range ports {
-		if portName, ok := knownPortNames[port]; ok {
-			fmt.Printf("%d: [%s]\n", port, portName)
+
+		// Port number first
+		portColor.Printf(" [%d] ", port)
+
+		// Type of port
+		fmt.Printf("[TCP] ")
+
+		// Display port type label
+		if port > 49151 {
+			privateColor.Printf("[private] ")
+		} else if port > 1023 {
+			registeredColor.Printf("[registered] ")
 		} else {
-			fmt.Printf("%d: [unknown]\n", port)
+			systemColor.Printf("[system] ")
+		}
+
+		// Display name if port has one
+		if portName, ok := knownPortNames[port]; ok {
+			fmt.Printf("[%s]\n", portName)
+		} else {
+			fmt.Printf("\n")
 		}
 	}
+}
+
+// Displays help message
+func usage() {
+	flag.PrintDefaults()
 }
 
 func init() {
@@ -249,6 +310,7 @@ func init() {
 }
 
 func main() {
+	flag.Usage = usage
 	flag.Parse()
 
 	// Load scanData from flags
@@ -258,24 +320,37 @@ func main() {
 	data.timeout = *timeout
 	if *allPorts {
 		data.startPort = 0
-		data.endPort = 50000
-	} else if *knownPorts {
+		data.endPort = 65535
+	}
+	if *knownPorts {
 		data.startPort = 0
-		data.endPort = 1024
-	} else if *registeredPorts {
+		data.endPort = 1023
+	}
+	if *registeredPorts {
 		data.startPort = 1025
-		data.endPort = 50000
+		data.endPort = 49151
+	}
+	if *privatePorts {
+		data.startPort = 49152
+		data.endPort = 65535
 	}
 
 	// Bail if we have no address set
 	if *address == "" {
-		log.Fatal("No address specified")
+		c := color.New(color.FgHiYellow, color.Underline)
+		fmt.Printf("No address, specify a port to scan by using ")
+		c.Printf("'skimmer --address 127.0.0.1' \n")
+
+		os.Exit(1)
 	}
 
 	// Scan ports and save results in array
-	log.Printf("Scanning ports [%d-%d] @ %s ... \n", data.startPort, data.endPort, data.address)
+	log.Printf("Scanning ports [%d-%d] @ %s using %d threads... \n", data.startPort, data.endPort, data.address, data.threads)
 	results := scanPorts(data)
 
 	// display array
 	displayOpenPorts(results)
+
+	// display results message
+	log.Printf("%d open TCP ports on %s \n", len(results), data.address)
 }
