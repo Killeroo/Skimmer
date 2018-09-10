@@ -338,7 +338,7 @@ func main() {
 	// Bail if we have no address set
 	if *address == "" {
 		c := color.New(color.FgHiYellow, color.Underline)
-		fmt.Printf("No address, specify a port to scan by using ")
+		fmt.Printf("No address, specify an address to scan by typing ")
 		c.Printf("'skimmer --address 127.0.0.1' \n")
 
 		os.Exit(1)
