@@ -1,6 +1,8 @@
 /* Skimmer - Lightweight port scanner
 *  Based off: github.com/anvie/port-scanner
 */
+//https://github.com/drael/GOnetstat/blob/master/gonetstat.go
+//https://github.com/stvp/go-udp-testing/blob/master/udp.go
 
 package main
 
@@ -14,6 +16,7 @@ import (
 	"github.com/gosuri/uiprogress"
 	"github.com/fatih/color"
 	"os"
+	"time"
 )
 
 // List of known port names
@@ -170,6 +173,7 @@ var knownPortNames = map[int] string {
 	623: "ASF Remote Management and Control Protocol (ASF-RMCP)",
 	625: "Open Directory Proxy (ODProxy)",
 	631: "Internet Printing Protocol (IPP)",
+
 }
 
 const iconText =
@@ -207,6 +211,7 @@ func scanPorts (data ScanData) []int {
 	openPorts := []int{} // Stores all open ports
 	lock := sync.Mutex{} // Mutex lock to make sure openPorts list is accessed one thread at a time
 	thread := make(chan bool, data.threads) // Go channel to pass data between threads
+	open2Ports := []int{} // Stores all open ports
 
 	// Setup progress bar
 	uiprogress.Start()
@@ -221,9 +226,16 @@ func scanPorts (data ScanData) []int {
 		// Create go routine to check if port is open in new thread
 		// Check if port is open in new thread
 		go func (port int) {
-			if isPortOpen(data.address, port) {
+			if isTCPPortOpen(data.address, port) {
 				lock.Lock()
 				openPorts = append(openPorts, port)
+				lock.Unlock()
+			}
+
+
+			if isUDPPortOpen(data.address, port) {
+				lock.Lock()
+				open2Ports = append(open2Ports, port)
 				lock.Unlock()
 			}
 
@@ -236,6 +248,10 @@ func scanPorts (data ScanData) []int {
 	// Stop progress bar
 	uiprogress.Stop()
 
+	for _, port := range open2Ports {
+		fmt.Println(port)
+	}
+
 	for i := 0; i < cap(thread); i++ {
 	    // Signal all remaining goroutines to stop 
 		thread <- true
@@ -247,13 +263,30 @@ func scanPorts (data ScanData) []int {
 // Checks if a port is open, first resolves address
 // then attempts to connect using tcp
 // Returns bool based on connection success
-func isPortOpen (address string, port int) bool {
+func isTCPPortOpen (address string, port int) bool {
 	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", address, port))
 	if err != nil {
 		return false
 	}
 
-	conn, err := net.DialTimeout("tcp", addr.String(), 1000)
+	conn, err := net.DialTimeout("tcp", addr.String(), time.Duration(*timeout))
+	if err != nil {
+		return false
+	}
+	defer conn.Close()
+
+	return true
+}
+
+// Similar to the previous isTCPPortOpen function, this function checks if a UDP
+// port is open at a particular address, the internals work in a similar way as before
+func isUDPPortOpen (address string, port int) bool {
+	addr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf("%s:%d", address, port))
+	if err != nil {
+		return false
+	}
+
+	conn, err := net.ListenUDP("udp", addr)
 	if err != nil {
 		return false
 	}
