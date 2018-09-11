@@ -170,6 +170,15 @@ var knownPortNames = map[int] string {
 	623: "ASF Remote Management and Control Protocol (ASF-RMCP)",
 	625: "Open Directory Proxy (ODProxy)",
 	631: "Internet Printing Protocol (IPP)",
+	635: "RLZ DBase",
+	636: "Lightweight Directory Access Protocol over TLS/SSL (LDAPS)",
+	639: "Multicast Source Discovery Protocol (MSDP)",
+	641: "SupportSoft Nexus Remote Command (control/listening)",
+	643: "SANity",
+	646: "Label Distribution Protocol (LDP)",
+	647: "DHCP Failover Protocol",
+	648: "Registry Registrar Protocol (RRP)",
+	651: "IEEE-MMS",
 }
 
 const iconText =
