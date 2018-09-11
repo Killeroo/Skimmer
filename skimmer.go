@@ -12,11 +12,11 @@ import (
 	"sync"
 	"log"
 	"flag"
-
-	"github.com/gosuri/uiprogress"
-	"github.com/fatih/color"
 	"os"
 	"time"
+	
+	"github.com/gosuri/uiprogress"
+	"github.com/fatih/color"
 )
 
 // List of known port names
@@ -182,6 +182,12 @@ var knownPortNames = map[int] string {
 	647: "DHCP Failover Protocol",
 	648: "Registry Registrar Protocol (RRP)",
 	651: "IEEE-MMS",
+	653: "SupportSoft Nexus Remote Command (data)",
+	654: "Media Management System (MMS) Media Management Protocol (MMP)",
+	655: "Tinc VPN daemon",
+	657: "IBM Remote Monitoring and Control (RMC) protocol",
+	660: "Mac OS X Server administration (version 10.4 and earlier)",
+	666: "Doom server (first online first-person shooter)",
 }
 
 const iconText =
@@ -289,12 +295,12 @@ func isTCPPortOpen (address string, port int) bool {
 // Similar to the previous isTCPPortOpen function, this function checks if a UDP
 // port is open at a particular address, the internals work in a similar way as before
 func isUDPPortOpen (address string, port int) bool {
-	addr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf("%s:%d", address, port))
+	addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", address, port))
 	if err != nil {
 		return false
 	}
 
-	conn, err := net.ListenUDP("udp", addr)
+	conn, err := net.DialUDP("udp", nil, addr)
 	if err != nil {
 		return false
 	}
